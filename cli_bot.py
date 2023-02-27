@@ -1,6 +1,15 @@
 import re
 
-contacts = {}  # Empty dictionary to store contacts
+contacts = {} # Empty dictionary to store contacts
+
+# Function dict by it's command
+COMMANDS = {
+    'hello': lambda _: "How can I help you?",
+    'add': lambda args: add_contact(args[0], normal_phone(args[1])),
+    'change': lambda args: change_contact(args[0], normal_phone(args[1])),
+    'phone': lambda args: find_phone(args[0]),
+    'show all': lambda _: show_all(),
+}
 
 # Decorator function for common input errors
 def input_error(func):
@@ -14,8 +23,7 @@ def input_error(func):
         except ValueError:
             return "Please enter name and correct phone number separated by a space"
         except IndexError:
-            return "Please enter name and correct phone number separated by a space"
-
+            return "Please enter a contact name"
     return wrapper
 
 
@@ -39,15 +47,9 @@ def normal_phone(phone):
         new_phone = checked_phone
         return new_phone
 
-@input_error
-def hello(*_):
-    return "How can I help you?"
-
 # fnc to add a new contact to the phonebook
 @input_error
-def add_contact(*args, **kwargs):
-    name = args[0]
-    phone = normal_phone(args[1])
+def add_contact(name, phone):
     if phone:
         contacts[name] = phone
         return f"{name} has been added to the phonebook"
@@ -57,9 +59,7 @@ def add_contact(*args, **kwargs):
 
 # fnc to change the phone number of an existing contact
 @input_error
-def change_contact(*args, **kwargs):
-    name = args[0]
-    phone = normal_phone(args[1])
+def change_contact(name, phone):
     if phone:
         contacts[name] = phone
         return f"The phone number for {name} has been updated"
@@ -82,18 +82,9 @@ def show_all(*args, **kwargs):
         output += f"{name}: {phone}\n"
     return output
 
-
-COMMANDS = {
-    hello: 'hello',
-    show_all: "show all",
-    add_contact: "add",
-    change_contact: "change",
-    find_phone: "phone",
-}
-
 # fnc to keep only needed part of the command
 def remove_unnecessary_text(text):
-    regex_pattern = "|".join(map(re.escape, COMMANDS.values()))
+    regex_pattern = '|'.join(map(re.escape, COMMANDS.keys()))
     match = re.search(regex_pattern, text.lower())
     if not match:
         return text
@@ -101,21 +92,25 @@ def remove_unnecessary_text(text):
     return text[start_index:]
 
 
-def command_handler(user_input: str):
-    for command, command_words in COMMANDS.items():
-        if user_input.lower().startswith(command_words):
-            return command, user_input[len(command_words):].strip().split(" ")
-    return None, None
-
-
 def main():
     while True:
-        user_input = input("Enter a command: ")
-        cmd = remove_unnecessary_text(user_input)
-        command, data = command_handler(cmd)
-        if command:
-            print(command(*data))
-        elif any(word in user_input.lower() for word in ['exit', 'close', 'good bye', 'goodbye']):
+        command = input("Enter a command: ")
+        only_useful_command = remove_unnecessary_text(command).split()
+        lower_command = [cmd.lower() for cmd in only_useful_command]
+        print(only_useful_command)
+        if not command:
+            continue
+        # call the corresponding function with the remaining elements of the command
+        if only_useful_command[0].lower() in COMMANDS:
+            try:
+                result = COMMANDS[only_useful_command[0].lower()](only_useful_command[1:])
+                print(result)
+            except IndexError:
+                print("Please enter name and correct phone number separated by a space")
+        elif only_useful_command[0].lower() == 'show' and only_useful_command[1].lower() == 'all':
+            result = COMMANDS['show all'](only_useful_command[1:])
+            print(result)
+        elif any(word in lower_command for word in ['exit', 'close', 'good bye', 'goodbye']):
             print('Good bye!')
             break
         else:
