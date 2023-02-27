@@ -1,4 +1,15 @@
+import re
+
 contacts = {} # Empty dictionary to store contacts
+
+# Function dict by it's command
+COMMANDS = {
+    'hello': lambda _: "How can I help you?",
+    'add': lambda args: add_contact(args[0], normal_phone(args[1])),
+    'change': lambda args: change_contact(args[0], normal_phone(args[1])),
+    'phone': lambda args: find_phone(args[0]),
+    'show all': lambda _: show_all(),
+}
 
 # Decorator function for common input errors
 def input_error(func):
@@ -64,41 +75,40 @@ def show_all():
         output += f"{name}: {phone}\n"
     return output
 
+# fnc to keep only needed part of the command
+def remove_unnecessary_text(text):
+    regex_pattern = '|'.join(map(re.escape, COMMANDS.keys()))
+    match = re.search(regex_pattern, text.lower())
+    if not match:
+        return text
+    start_index = match.start()
+    return text[start_index:]
 
 
 def main():
     while True:
-        command = input("Enter a command: ").split()
-        lower_command = [command.lower() for command in command]
+        command = input("Enter a command: ")
+        only_useful_command = remove_unnecessary_text(command).split()
+        lower_command = [cmd.lower() for cmd in only_useful_command]
+        print(only_useful_command)
         if not command:
             continue
-        elif 'hello' in lower_command:
-            print("How can I help you?")
-        elif 'add' in lower_command:
-            add_index = lower_command.index('add')
-            if len(command) < add_index + 3: # in case user forgot to provide a name or phone number
-                print("Please enter a contact name and phone number") 
-            else:
-                print(add_contact(command[add_index+1], normal_phone(command[add_index+2]))) # call the add_contact with the following commands indexes(name -> phone)
-        elif 'change' in lower_command:
-            change_index = lower_command.index('change')
-            if len(command) < change_index + 3: # in case user forgot to provide a name or phone number
-                print("Please enter a contact name and phone number")
-            else:
-                print(change_contact(command[change_index+1], normal_phone(command[change_index+2]))) # call the change_contact with the following commands indexes(name -> phone)
-        elif 'phone' in lower_command:
-            phone_index = lower_command.index('phone')
-            if len(command) < phone_index + 2:
-                print("Please enter a contact name")
-            else: 
-                print(find_phone(command[phone_index+1]))
-        # check if the user input command contains the word 'show' and then the word 'all' 
-        elif 'show' in lower_command and lower_command.index("show") < len(lower_command) - 1 and lower_command[lower_command.index("show") + 1] == "all": 
-            print(show_all())
-        # exit commands with the same logic as previous elif statement
-        elif 'exit' in lower_command or 'close' in lower_command or ('good' in lower_command and lower_command.index("good") < len(lower_command) - 1 and lower_command[lower_command.index("good") + 1] == "bye"):
+        # call the corresponding function with the remaining elements of the command
+        if only_useful_command[0].lower() in COMMANDS:
+            try:
+                result = COMMANDS[only_useful_command[0].lower()](only_useful_command[1:])
+                print(result)
+            except IndexError:
+                print("Please enter name and correct phone number separated by a space")
+        elif only_useful_command[0].lower() == 'show' and only_useful_command[1].lower() == 'all':
+            result = COMMANDS['show all'](only_useful_command[1:])
+            print(result)
+        elif any(word in lower_command for word in ['exit', 'close', 'good bye', 'goodbye']):
             print('Good bye!')
             break
+        else:
+            print('Command is not supported. Try again.')
 
+        
 if __name__ == "__main__":
     main()
